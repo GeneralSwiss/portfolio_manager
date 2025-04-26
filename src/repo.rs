@@ -1,75 +1,84 @@
 use crate::Portfolio;
 use dashmap::DashMap;
-use serde_json;
-use sqlx::{sqlite::SqlitePoolOptions, Pool, Sqlite};
-use std::time::{Duration, SystemTime};
-use tokio::{sync::mpsc, task};
-
-const CHANNEL_CAP: usize = 32;           // queued writes
-const RETRY_DELAY: Duration = Duration::from_secs(5);
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct Repo {
-    /// fast read cache
-    cache: DashMap<String, Portfolio>,
-    /// async write sender
-    tx:    mpsc::Sender<Portfolio>,
+    cache: Arc<DashMap<String, Portfolio>>,   // key = "current"
 }
 
 impl Repo {
-    pub async fn new(db_url: &str) -> anyhow::Result<Self> {
-        // Build connection pool
-        let pool = SqlitePoolOptions::new()
-            .max_connections(4)
-            .connect(db_url)
-            .await?;
+    pub fn new() -> Self {
+        let cache = DashMap::new();
+        cache.insert("current".into(), Portfolio::default());
+        Self { cache: Arc::new(cache) }
+    }
 
-        // Migration
-        sqlx::query(include_str!("schema.sql")).execute(&pool).await?;
+    /* -------- API ---------- */
 
-        // Spawn write-behind task
-        let (tx, mut rx) = mpsc::channel::<Portfolio>(CHANNEL_CAP);
-        task::spawn(async move {
-            while let Some(p) = rx.recv().await {
-                // retry loop
-                loop {
-                    let blob = serde_json::to_string(&p).expect("serialize");
-                    let now  = SystemTime::now()
-                        .duration_since(SystemTime::UNIX_EPOCH)
-                        .unwrap()
-                        .as_secs() as i64;
-                    let res = sqlx::query!(
-                        "REPLACE INTO portfolio_snapshots (id, json_blob, updated)
-                         VALUES ('current', ?, ?)",
-                        blob,
-                        now
-                    )
-                    .execute(&pool)
-                    .await;
+    pub fn get(&self) -> Portfolio {
+        // clone is cheap thanks to Arc<String>/Vec internals
+        self.cache.get("current").unwrap().clone()
+    }
 
-                    match res {
-                        Ok(_) => break,                       // success
-                        Err(e) => {
-                            eprintln!("db write failed: {e:?} — retrying in 5s");
-                            tokio::time::sleep(RETRY_DELAY).await;
-                        }
-                    }
-                }
+    pub fn set(&self, p: Portfolio) {
+        self.cache.insert("current".into(), p);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::*;
+    use super::*;
+    use std::thread;
+
+    /// Helper: build a portfolio with one dummy position
+    fn demo_portfolio() -> Portfolio {
+        Portfolio {
+            cash: 42_000.0,
+            positions: vec![Position {
+                id: "test".into(),
+                underlying: "SPY".into(),
+                book_layer: BookLayer::Income,
+                pos_type: PositionType::CreditSpread,
+                legs: vec![],
+                margin_used: 10_000.0,
+            }],
+        }
+    }
+
+    #[test]
+    fn repo_roundtrip() {
+        let repo = Repo::new();
+        let p = demo_portfolio();
+        repo.set(p.clone());
+
+        let fetched = repo.get();
+        assert_eq!(fetched.cash, 42_000.0);
+        assert_eq!(fetched.positions.len(), 1);
+        assert_eq!(fetched.positions[0].id, "test");
+    }
+
+    #[test]
+    fn repo_thread_safety() {
+        let repo = Repo::new();
+        let repo2 = repo.clone();           // share across threads
+
+        // Spawn a writer thread
+        let handle = thread::spawn(move || {
+            for i in 0..100 {
+                let mut p = demo_portfolio();
+                p.cash += i as f64;
+                repo2.set(p);
             }
         });
 
-        Ok(Self { cache: DashMap::new(), tx })
-    }
+        // Meanwhile read repeatedly
+        for _ in 0..100 {
+            let _ = repo.get();             // should never panic
+        }
 
-    /// Read-only access is always from cache (very fast).
-    pub fn get_current(&self) -> Option<Portfolio> {
-        self.cache.get("current").map(|r| r.clone())
-    }
-
-    /// Update portfolio in-mem and enqueue async write.
-    pub fn upsert(&self, p: Portfolio) {
-        self.cache.insert("current".into(), p.clone());
-        // best-effort: ignore if channel full (rare, but keeps app non-blocking)
-        let _ = self.tx.try_send(p);
+        handle.join().unwrap();
     }
 }
+

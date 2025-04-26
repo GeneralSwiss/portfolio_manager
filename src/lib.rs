@@ -54,7 +54,7 @@ pub struct Position {
     pub margin_used:  f64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Portfolio {
     pub cash:       f64,
     pub positions:  Vec<Position>,
