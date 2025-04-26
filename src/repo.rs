@@ -4,14 +4,16 @@ use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct Repo {
-    cache: Arc<DashMap<String, Portfolio>>,   // key = "current"
+    cache: Arc<DashMap<String, Portfolio>>, // key = "current"
 }
 
 impl Repo {
     pub fn new() -> Self {
         let cache = DashMap::new();
         cache.insert("current".into(), Portfolio::default());
-        Self { cache: Arc::new(cache) }
+        Self {
+            cache: Arc::new(cache),
+        }
     }
 
     /* -------- API ---------- */
@@ -28,9 +30,33 @@ impl Repo {
 
 #[cfg(test)]
 mod tests {
-    use crate::*;
     use super::*;
+    use crate::*;
     use std::thread;
+
+    fn empty_portfolio() -> Portfolio {
+        Portfolio::default()
+    }
+
+    #[test]
+    fn roundtrip() {
+        let repo = Repo::new();
+        repo.set(empty_portfolio());
+        assert!(repo.get().positions.is_empty());
+    }
+
+    #[test]
+    fn thread_safe() {
+        let repo = Repo::new();
+        let writer = repo.clone();
+        thread::spawn(move || {
+            for _ in 0..100 {
+                writer.set(empty_portfolio());
+            }
+        })
+        .join()
+        .unwrap();
+    }
 
     /// Helper: build a portfolio with one dummy position
     fn demo_portfolio() -> Portfolio {
@@ -62,7 +88,7 @@ mod tests {
     #[test]
     fn repo_thread_safety() {
         let repo = Repo::new();
-        let repo2 = repo.clone();           // share across threads
+        let repo2 = repo.clone(); // share across threads
 
         // Spawn a writer thread
         let handle = thread::spawn(move || {
@@ -75,10 +101,9 @@ mod tests {
 
         // Meanwhile read repeatedly
         for _ in 0..100 {
-            let _ = repo.get();             // should never panic
+            let _ = repo.get(); // should never panic
         }
 
         handle.join().unwrap();
     }
 }
-

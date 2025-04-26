@@ -23,7 +23,7 @@ pub enum BookLayer {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Greeks {
     pub delta: f64,
-    pub vega:  f64,
+    pub vega: f64,
     pub theta: f64,
     pub gamma: f64,
 }
@@ -31,11 +31,11 @@ pub struct Greeks {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Leg {
     pub leg_type: LegType,
-    pub strike:   f64,
-    pub quantity: i32,      // negative = short
-    pub premium:  f64,      // +collected, –paid
-    pub expiry:   NaiveDate,
-    pub greeks:   Greeks,
+    pub strike: f64,
+    pub quantity: i32, // negative = short
+    pub premium: f64,  // +collected, –paid
+    pub expiry: NaiveDate,
+    pub greeks: Greeks,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -46,18 +46,18 @@ pub enum LegType {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Position {
-    pub id:           String,
-    pub underlying:   String,      // "SPY", "QQQ", etc.
-    pub book_layer:   BookLayer,
-    pub pos_type:     PositionType,
-    pub legs:         Vec<Leg>,
-    pub margin_used:  f64,
+    pub id: String,
+    pub underlying: String, // "SPY", "QQQ", etc.
+    pub book_layer: BookLayer,
+    pub pos_type: PositionType,
+    pub legs: Vec<Leg>,
+    pub margin_used: f64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Portfolio {
-    pub cash:       f64,
-    pub positions:  Vec<Position>,
+    pub cash: f64,
+    pub positions: Vec<Position>,
 }
 
 /// --------------------------- AGGREGATION HELPERS ---------------------------
@@ -66,10 +66,15 @@ impl Portfolio {
     /// Net portfolio Greeks (beta-weighted later if desired)
     pub fn net_greeks(&self) -> Greeks {
         self.positions.iter().flat_map(|p| &p.legs).fold(
-            Greeks { delta: 0.0, vega: 0.0, theta: 0.0, gamma: 0.0 },
+            Greeks {
+                delta: 0.0,
+                vega: 0.0,
+                theta: 0.0,
+                gamma: 0.0,
+            },
             |mut acc, leg| {
                 acc.delta += leg.greeks.delta * leg.quantity as f64;
-                acc.vega  += leg.greeks.vega  * leg.quantity as f64;
+                acc.vega += leg.greeks.vega * leg.quantity as f64;
                 acc.theta += leg.greeks.theta * leg.quantity as f64;
                 acc.gamma += leg.greeks.gamma * leg.quantity as f64;
                 acc
@@ -90,7 +95,11 @@ impl Portfolio {
             .filter(|p| p.book_layer == BookLayer::Income)
             .map(|p| p.margin_used)
             .sum();
-        if spread_risk == 0.0 { 0.0 } else { shock_payout / spread_risk }
+        if spread_risk == 0.0 {
+            0.0
+        } else {
+            shock_payout / spread_risk
+        }
     }
 }
 
@@ -111,4 +120,3 @@ mod tests {
         assert_eq!(decoded.cash, 100_000.0);
     }
 }
-
