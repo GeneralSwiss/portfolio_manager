@@ -1,0 +1,73 @@
+{
+  "cash": 25000.00,
+  "positions": [
+    {
+      "id": "spy_put_credit",
+      "underlying": "SPY",
+      "book_layer": "Income",
+      "pos_type": "CreditSpread",
+      "margin_used": 5000.0,
+      "legs": [
+        {
+          "leg_type": "Short",
+          "strike": 470,
+          "quantity": -3,
+          "premium": 2.40,
+          "expiry": "2025-06-20",
+          "greeks": { "delta": -0.22, "vega": -0.42, "theta": 0.30, "gamma": 0.00 }
+        },
+        {
+          "leg_type": "Long",
+          "strike": 460,
+          "quantity": 3,
+          "premium": -0.55,
+          "expiry": "2025-06-20",
+          "greeks": { "delta": -0.11, "vega": -0.20, "theta": 0.10, "gamma": 0.00 }
+        }
+      ]
+    },
+    {
+      "id": "vix_tail_hedge",
+      "underlying": "VIX",
+      "book_layer": "Insurance",
+      "pos_type": "LongCall",
+      "margin_used": 0.0,
+      "legs": [
+        {
+          "leg_type": "Long",
+          "strike": 30,
+          "quantity": 10,
+          "premium": -0.40,
+          "expiry": "2025-08-19",
+          "greeks": { "delta": 0.06, "vega": 0.90, "theta": -0.02, "gamma": 0.00 }
+        }
+      ]
+    },
+    {
+      "id": "qqq_call_debit",
+      "underlying": "QQQ",
+      "book_layer": "Income",
+      "pos_type": "DebitSpread",
+      "margin_used": 0.0,
+      "legs": [
+        {
+          "leg_type": "Long",
+          "strike": 430,
+          "quantity": 1,
+          "premium": -6.20,
+          "expiry": "2025-07-18",
+          "greeks": { "delta": 0.40, "vega": 0.75, "theta": -0.05, "gamma": 0.02 }
+        },
+        {
+          "leg_type": "Short",
+          "strike": 450,
+          "quantity": -1,
+          "premium": 2.30,
+          "expiry": "2025-07-18",
+          "greeks": { "delta": 0.22, "vega": 0.38, "theta": -0.03, "gamma": 0.01 }
+        }
+      ]
+    }
+  ]
+}
+
