@@ -1,5 +1,6 @@
 mod repo;
 use chrono::NaiveDate;
+pub use repo::Repo;
 use serde::{Deserialize, Serialize};
 
 /// --------------------------- CORE DOMAIN ---------------------------
