@@ -1,10 +1,11 @@
 mod repo;
 mod ui;
-use crate::domain::Position;
+pub use crate::domain::Position;
 pub use repo::Repo;
 use serde::{Deserialize, Serialize};
+pub use ui::main_page;
 
-mod domain;
+pub mod domain;
 
 /// --------------------------- CORE DOMAIN ---------------------------
 

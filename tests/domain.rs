@@ -23,6 +23,7 @@ fn demo_portfolio() -> Portfolio {
                         vega: -0.4,
                         theta: 0.3,
                         gamma: 0.0,
+                        rho: 0.0,
                     },
                 },
                 Leg {
@@ -36,6 +37,7 @@ fn demo_portfolio() -> Portfolio {
                         vega: -0.2,
                         theta: 0.1,
                         gamma: 0.0,
+                        rho: 0.0,
                     },
                 },
             ],

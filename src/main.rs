@@ -4,7 +4,7 @@ use crossterm::{
     execute,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
-use portfolio_manager::{Portfolio, Repo};
+use portfolio_manager::{main_page, Portfolio, Repo};
 use ratatui::{
     Terminal,
     backend::CrosstermBackend,
@@ -95,42 +95,11 @@ async fn run_tui(repo: Repo, tick: u64) -> std::io::Result<()> {
     // main loop
     loop {
         // draw
-        terminal.draw(|f| {
-            let chunks = Layout::default()
-                .direction(Direction::Vertical)
-                .margin(1)
-                .constraints([Constraint::Length(4), Constraint::Percentage(100)].as_ref())
-                .split(f.area());
+        terminal.draw(|frame| {
 
-            let sub_chunks = Layout::default()
-                .direction(Direction::Horizontal)
-                .margin(1)
-                .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
-                .split(chunks[0]);
+            let portfolio = repo.get(); // snapshot
+            main_page(frame, &portfolio)
             
-            let greek_chunks = Layout::default()
-                .direction(Direction::Horizontal)
-                .margin(1)
-                .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
-                .split(chunks[1]);
-            
-            let greek_chunks_1 = Layout::default()
-                .direction(Direction::Vertical)
-                .margin(1)
-                .constraints([Constraint::Percentage(20)])
-                .split(greek_chunks[1]);
-
-            let p = repo.get(); // snapshot
-            
-
-            let greeks = p.net_greeks();
-            let greek_string = format!("Delta\tGamma\tVega\tTheta\tRho\n{:.2}\t{:.2}\t{:.2}\t{:.2}\t{:.2}", greeks.delta, greeks.gamma, greeks.vega, greeks.theta, greeks.rho);
-            let block = Block::default().title("Portfolio").borders(Borders::ALL);
-            f.render_widget(block, chunks[0]);
-            f.render_widget(Block::default().title("Positions").borders(Borders::ALL), greek_chunks[0]);
-            f.render_widget(Paragraph::new(txt), sub_chunks[0]);
-            f.render_widget(Block::default().title("Greeks").borders(Borders::ALL), greek_chunks_1[0]);
-            f.render_widget(Paragraph::new(greek_string).block(Block::default()), sub_chunks[1]);
         })?;
 
         tokio::select! {
@@ -151,7 +120,7 @@ async fn run_tui(repo: Repo, tick: u64) -> std::io::Result<()> {
     execute!(
         terminal.backend_mut(),
         LeaveAlternateScreen,
-        DisableMouseCapture
+        DisableMouseCapture,
     )?;
     terminal.show_cursor()?;
     Ok(())
