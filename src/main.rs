@@ -4,7 +4,7 @@ use crossterm::{
     execute,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
-use portfolio_manager::{main_page, Portfolio, Repo};
+use portfolio_manager::{Portfolio, Repo, main_page};
 use ratatui::{
     Terminal,
     backend::CrosstermBackend,
@@ -44,8 +44,7 @@ enum Cmd {
 }
 
 #[tokio::main]
-async fn 
-main() -> std::io::Result<()> {
+async fn main() -> std::io::Result<()> {
     let log_file = "portfolio-manager.log";
     if let Err(e) = setup_logging(log_file) {
         eprintln!("Error initializing logging: {}", e);
@@ -96,10 +95,8 @@ async fn run_tui(repo: Repo, tick: u64) -> std::io::Result<()> {
     loop {
         // draw
         terminal.draw(|frame| {
-
             let portfolio = repo.get(); // snapshot
             main_page(frame, &portfolio)
-            
         })?;
 
         tokio::select! {

@@ -1,7 +1,7 @@
+use crate::{Portfolio, Position};
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Flex, Layout, Rect};
 use ratatui::widgets::{Block, ListItem, Paragraph, Row, Table};
-use crate::{Portfolio, Position};
 
 pub fn net_greeks(height: u16, area: Rect) -> Rect {
     let [area] = Layout::default()
@@ -34,7 +34,11 @@ pub fn main_page(frame: &mut Frame, portfolio: &Portfolio) {
 
 impl<'a> From<&'a Position> for Row<'a> {
     fn from(value: &'a Position) -> Self {
-        Row::new(vec![value.id.clone(), value.underlying.clone(), value.market_value().to_string()])
+        Row::new(vec![
+            value.id.clone(),
+            value.underlying.clone(),
+            value.market_value().to_string(),
+        ])
     }
 }
 

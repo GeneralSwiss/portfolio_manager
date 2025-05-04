@@ -1,25 +1,21 @@
 use crate::Greeks;
 use chrono::NaiveDate;
+use rust_decimal::Decimal;
+use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Leg {
-    pub leg_type: LegType,
-    pub strike: f64,
+    pub symbol: String,
+    pub strike: Option<Decimal>, // none for stock
     pub quantity: i32, // negative = short
-    pub premium: f64,  // +collected, –paid
-    pub expiry: NaiveDate,
+    pub price_paid: Decimal,  // +collected, –paid
+    pub expiry: Option<NaiveDate>, // none for stock
     pub greeks: Greeks,
-}
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub enum LegType {
-    Long,
-    Short,
 }
 
 impl Leg {
     pub fn market_value(&self) -> f64 {
-        self.quantity as f64 * self.premium
+        (self.price_paid * Decimal::from_i32(self.quantity).unwrap()).to_f64().unwrap()
     }
 }

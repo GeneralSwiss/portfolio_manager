@@ -67,7 +67,7 @@ mod tests {
     /// Helper: build a portfolio with one dummy domain
     fn demo_portfolio() -> Portfolio {
         Portfolio {
-            cash: 42_000.0,
+            cash: Decimal::try_from(42_000.0).unwrap(),
             positions: vec![Position {
                 id: "test".into(),
                 underlying: "SPY".into(),
@@ -86,7 +86,7 @@ mod tests {
         repo.set(p.clone());
 
         let fetched = repo.get();
-        assert_eq!(fetched.cash, 42_000.0);
+        assert_eq!(fetched.cash, Decimal::try_from(42_000.0).unwrap());
         assert_eq!(fetched.positions.len(), 1);
         assert_eq!(fetched.positions[0].id, "test");
     }
@@ -100,7 +100,7 @@ mod tests {
         let handle = thread::spawn(move || {
             for i in 0..100 {
                 let mut p = demo_portfolio();
-                p.cash += i as f64;
+                p.cash += Decimal::from_i32(i).unwrap();
                 repo2.set(p);
             }
         });
