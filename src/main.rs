@@ -11,8 +11,14 @@ use ratatui::{
     layout::{Constraint, Direction, Layout},
     widgets::{Block, Borders, Paragraph},
 };
-use std::{error::Error, io, time::Duration};
-use tokio::{fs, sync::mpsc, task, time}; // re-export your lib types
+use std::fs::File;
+use std::sync::Mutex;
+use std::{io, time::Duration};
+use tokio::{fs, sync::mpsc, task, time};
+use tracing::info;
+use tracing_subscriber::fmt::writer::BoxMakeWriter;
+use tracing_subscriber::util::SubscriberInitExt;
+// re-export your lib types
 
 /// Simple portfolio TUI
 #[derive(Parser)]
@@ -30,7 +36,6 @@ struct Cli {
 
 #[derive(clap::Subcommand)]
 enum Cmd {
-
     Load {
         #[arg(value_name = "FILE")]
         file: std::path::PathBuf,
@@ -39,7 +44,16 @@ enum Cmd {
 }
 
 #[tokio::main]
-async fn main() -> std::io::Result<()> {
+async fn 
+main() -> std::io::Result<()> {
+    let log_file = "portfolio-manager.log";
+    if let Err(e) = setup_logging(log_file) {
+        eprintln!("Error initializing logging: {}", e);
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "Logger Failed!",
+        ));
+    }
     let cli = Cli::parse();
 
     // shared in-memory repo
@@ -54,7 +68,7 @@ async fn main() -> std::io::Result<()> {
     match &cli.cmd.unwrap_or(Cmd::Tui) {
         Cmd::Load { file } => {
             return Ok(());
-        } 
+        }
         Cmd::Tui => run_tui(repo, cli.tick).await?,
     };
     Ok(())
@@ -85,27 +99,48 @@ async fn run_tui(repo: Repo, tick: u64) -> std::io::Result<()> {
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
                 .margin(1)
-                .constraints([Constraint::Percentage(100)].as_ref())
+                .constraints([Constraint::Length(4), Constraint::Percentage(100)].as_ref())
                 .split(f.area());
 
-            let p = repo.get(); // snapshot
-            let txt = format!("Cash: ${:.2}\nPositions: {}", p.cash, p.positions.len());
+            let sub_chunks = Layout::default()
+                .direction(Direction::Horizontal)
+                .margin(1)
+                .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+                .split(chunks[0]);
+            
+            let greek_chunks = Layout::default()
+                .direction(Direction::Horizontal)
+                .margin(1)
+                .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+                .split(chunks[1]);
+            
+            let greek_chunks_1 = Layout::default()
+                .direction(Direction::Vertical)
+                .margin(1)
+                .constraints([Constraint::Percentage(20)])
+                .split(greek_chunks[1]);
 
+            let p = repo.get(); // snapshot
+            
+
+            let greeks = p.net_greeks();
+            let greek_string = format!("Delta\tGamma\tVega\tTheta\tRho\n{:.2}\t{:.2}\t{:.2}\t{:.2}\t{:.2}", greeks.delta, greeks.gamma, greeks.vega, greeks.theta, greeks.rho);
             let block = Block::default().title("Portfolio").borders(Borders::ALL);
             f.render_widget(block, chunks[0]);
-            f.render_widget(Paragraph::new(txt), chunks[0]);
+            f.render_widget(Block::default().title("Positions").borders(Borders::ALL), greek_chunks[0]);
+            f.render_widget(Paragraph::new(txt), sub_chunks[0]);
+            f.render_widget(Block::default().title("Greeks").borders(Borders::ALL), greek_chunks_1[0]);
+            f.render_widget(Paragraph::new(greek_string).block(Block::default()), sub_chunks[1]);
         })?;
 
         tokio::select! {
             _ = rx.recv() => { /* tick => redraw next loop */ }
             Ok(ev) = read_event_blocking() => {
-                match ev {
-                    Event::Key(k) => {
-                        if k.code == KeyCode::Char('q') {
-                            break;
-                        }
-                    },
-                    _ => { },
+                info!("Event: {:?}", ev);
+                if let Event::Key(k) = ev {
+                    if k.code == KeyCode::Char('q') {
+                        break;
+                    }
                 }
             }
         }
@@ -123,7 +158,20 @@ async fn run_tui(repo: Repo, tick: u64) -> std::io::Result<()> {
 }
 
 async fn read_event_blocking() -> std::io::Result<Event> {
-    tokio::task::spawn_blocking(|| crossterm::event::read())
+    tokio::task::spawn_blocking(crossterm::event::read)
         .await
         .expect("task panicked")
+}
+
+/// Initialize logging with file-based logging and optional external layers.
+///
+/// The File should rotate every hour, and the file name should be an indicator of the time in which
+/// the logs were created.
+fn setup_logging(log_file: &str) -> anyhow::Result<()> {
+    let log_file = File::create(log_file)?;
+    tracing_subscriber::fmt::Subscriber::builder()
+        .with_writer(Mutex::new(log_file))
+        .with_level(true)
+        .init();
+    Ok(())
 }

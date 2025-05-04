@@ -1,5 +1,6 @@
 use chrono::NaiveDate;
-use portfolio_manager::{BookLayer, Greeks, Leg, LegType, Portfolio, Position, PositionType};
+use portfolio_manager::domain::leg::{Leg, LegType};
+use portfolio_manager::{BookLayer, Greeks, Portfolio, Position, PositionType};
 
 fn demo_portfolio() -> Portfolio {
     Portfolio {

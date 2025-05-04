@@ -1,7 +1,10 @@
 mod repo;
-use chrono::NaiveDate;
+mod ui;
+use crate::domain::Position;
 pub use repo::Repo;
 use serde::{Deserialize, Serialize};
+
+mod domain;
 
 /// --------------------------- CORE DOMAIN ---------------------------
 
@@ -27,32 +30,7 @@ pub struct Greeks {
     pub vega: f64,
     pub theta: f64,
     pub gamma: f64,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Leg {
-    pub leg_type: LegType,
-    pub strike: f64,
-    pub quantity: i32, // negative = short
-    pub premium: f64,  // +collected, –paid
-    pub expiry: NaiveDate,
-    pub greeks: Greeks,
-}
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub enum LegType {
-    Long,
-    Short,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Position {
-    pub id: String,
-    pub underlying: String, // "SPY", "QQQ", etc.
-    pub book_layer: BookLayer,
-    pub pos_type: PositionType,
-    pub legs: Vec<Leg>,
-    pub margin_used: f64,
+    pub rho: f64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -72,6 +50,7 @@ impl Portfolio {
                 vega: 0.0,
                 theta: 0.0,
                 gamma: 0.0,
+                rho: 0.0,
             },
             |mut acc, leg| {
                 acc.delta += leg.greeks.delta * leg.quantity as f64;

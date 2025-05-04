@@ -7,6 +7,12 @@ pub struct Repo {
     cache: Arc<DashMap<String, Portfolio>>, // key = "current"
 }
 
+impl Default for Repo {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Repo {
     pub fn new() -> Self {
         let cache = DashMap::new();
@@ -58,7 +64,7 @@ mod tests {
         .unwrap();
     }
 
-    /// Helper: build a portfolio with one dummy position
+    /// Helper: build a portfolio with one dummy domain
     fn demo_portfolio() -> Portfolio {
         Portfolio {
             cash: 42_000.0,
