@@ -4,7 +4,7 @@ mod ui;
 pub use crate::domain::Position;
 pub use repo::Repo;
 use rust_decimal::Decimal;
-use rust_decimal::prelude::FromPrimitive;
+use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
 use serde::{Deserialize, Serialize};
 pub use ui::main_page;
 
@@ -80,20 +80,23 @@ impl Portfolio {
     }
 
     /// Total margin in use
-    pub fn margin_used(&self) -> f64 {
-        self.positions.iter().map(|p| p.margin_used).sum()
+    pub fn margin_used(&self) -> Decimal {
+        self.positions
+            .iter()
+            .map(|p| p.margin_used)
+            .sum::<Decimal>()
     }
 
     /// Convexity-coverage ratio (stub: replace `shock_payout` with real pricer)
-    pub fn convexity_ratio(&self, shock_payout: f64) -> f64 {
-        let spread_risk: f64 = self
+    pub fn convexity_ratio(&self, shock_payout: Decimal) -> Decimal {
+        let spread_risk: Decimal = self
             .positions
             .iter()
             .filter(|p| p.book_layer == BookLayer::Income)
             .map(|p| p.margin_used)
             .sum();
-        if spread_risk == 0.0 {
-            0.0
+        if spread_risk.is_zero() {
+            Decimal::ZERO
         } else {
             shock_payout / spread_risk
         }

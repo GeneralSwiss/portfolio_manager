@@ -1,25 +1,20 @@
 use crate::Portfolio;
+use anyhow::{Context, Result};
 use dashmap::DashMap;
-use std::sync::Arc;
+use std::fs::File;
+use std::io::{BufReader, BufWriter};
+use std::path::Path;
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct Repo {
-    cache: Arc<DashMap<String, Portfolio>>, // key = "current"
-}
-
-impl Default for Repo {
-    fn default() -> Self {
-        Self::new()
-    }
+    cache: DashMap<String, Portfolio>, // key = portfolio name/id
 }
 
 impl Repo {
     pub fn new() -> Self {
         let cache = DashMap::new();
         cache.insert("current".into(), Portfolio::default());
-        Self {
-            cache: Arc::new(cache),
-        }
+        Self { cache }
     }
 
     /* -------- API ---------- */
@@ -27,6 +22,51 @@ impl Repo {
     pub fn get(&self) -> Portfolio {
         // clone is cheap thanks to Arc<String>/Vec internals
         self.cache.get("current").unwrap().clone()
+    }
+
+    pub fn upsert(&self, key: impl Into<String>, p: Portfolio) {
+        self.cache.insert(key.into(), p);
+    }
+
+    pub fn remove(&self, key: impl Into<String>) -> Option<Portfolio> {
+        self.cache.remove(&key.into()).map(|p| p.1)
+    }
+
+    pub fn with_portfolio<F, R>(&self, key: &str, f: F) -> Option<R>
+    where
+        F: FnOnce(&Portfolio) -> R,
+    {
+        self.cache.get(key).map(|guard| f(&*guard))
+    }
+
+    pub fn list_keys(&self) -> Vec<String> {
+        self.cache.iter().map(|r| r.key().clone()).collect()
+    }
+
+    pub fn save_to_file(&self, path: impl AsRef<Path>) -> Result<()> {
+        let file = File::create(path).context("create save file")?;
+        let writer = BufWriter::new(file);
+        serde_json::to_writer_pretty(writer, &self.list_as_vec()).context("serialize repo")
+    }
+
+    pub fn load_from_file(&self, path: impl AsRef<Path>) -> Result<()> {
+        let file = File::open(path).context("open repo file")?;
+        let reader = BufReader::new(file);
+        let vec: Vec<(String, Portfolio)> =
+            serde_json::from_reader(reader).context("deserialize repo")?;
+        self.cache.clear();
+        vec.into_iter().for_each(|(k, v)| {
+            self.cache.insert(k, v);
+        });
+        Ok(())
+    }
+
+    /// Returns a Vec<(key, portfolio)> — handy for JSON dump.
+    fn list_as_vec(&self) -> Vec<(String, Portfolio)> {
+        self.cache
+            .iter()
+            .map(|r| (r.key().clone(), r.value().clone()))
+            .collect()
     }
 
     pub fn set(&self, p: Portfolio) {
@@ -74,7 +114,7 @@ mod tests {
                 book_layer: BookLayer::Income,
                 pos_type: PositionType::CreditSpread,
                 legs: vec![],
-                margin_used: 10_000.0,
+                margin_used: Decimal::try_from(10_000.0).unwrap(),
             }],
         }
     }
