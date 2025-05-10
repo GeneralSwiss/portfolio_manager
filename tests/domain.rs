@@ -1,5 +1,5 @@
 use chrono::NaiveDate;
-use portfolio_manager::domain::leg::Leg;
+use portfolio_manager::domain::leg::{Leg, LegType};
 use portfolio_manager::{BookLayer, Greeks, Portfolio, Position, PositionType};
 use rust_decimal::Decimal;
 use rust_decimal::prelude::FromPrimitive;
@@ -16,6 +16,7 @@ fn demo_portfolio() -> Portfolio {
             legs: vec![
                 Leg {
                     symbol: "SPX".into(),
+                    leg_type: LegType::OPTION,
                     strike: Some(Decimal::from_f64(4700.0).unwrap()),
                     quantity: -1,
                     price_paid: Decimal::from_f64(2.5).unwrap(),
@@ -30,6 +31,7 @@ fn demo_portfolio() -> Portfolio {
                 },
                 Leg {
                     symbol: "SPX".into(),
+                    leg_type: LegType::OPTION,
                     strike: Some(Decimal::from_f64(4600.0).unwrap()),
                     quantity: 1,
                     price_paid: Decimal::from_f64(-0.5).unwrap(),
