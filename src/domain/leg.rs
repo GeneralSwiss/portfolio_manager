@@ -1,7 +1,7 @@
 use crate::Greeks;
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
-use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
+use rust_decimal::prelude::FromPrimitive;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -18,11 +18,12 @@ pub struct Leg {
 
 impl Leg {
     pub fn market_value(&self) -> Decimal {
-        (self.price_paid * Decimal::from_i32(self.quantity).unwrap())
+        self.price_paid * Decimal::from_i32(self.quantity).unwrap()
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum LegType {
     OPTION,
     STOCK,

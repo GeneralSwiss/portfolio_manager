@@ -16,7 +16,7 @@ pub struct Position {
 
 impl Position {
     pub fn market_value(&self) -> Decimal {
-        if (self.legs.is_empty()) {
+        if self.legs.is_empty() {
             return Decimal::zero();
         }
         self.legs.iter().map(|l| l.market_value()).sum()

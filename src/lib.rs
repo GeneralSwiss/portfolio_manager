@@ -1,14 +1,17 @@
+pub mod domain;
+mod error;
+mod ibkr;
 mod repo;
 mod ui;
+
+pub use error::{Error, Result};
 
 pub use crate::domain::Position;
 pub use repo::Repo;
 use rust_decimal::Decimal;
-use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
+use rust_decimal::prelude::FromPrimitive;
 use serde::{Deserialize, Serialize};
 pub use ui::main_page;
-
-pub mod domain;
 
 /// --------------------------- CORE DOMAIN ---------------------------
 

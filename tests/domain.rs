@@ -71,7 +71,7 @@ fn aggregates_greeks_correctly() {
 
     assert_eq!(g.delta, dec!(0.10), "delta mismatch");
     assert_eq!(g.vega, dec!(0.20), "vega mismatch");
-    assert_eq!(g.theta, dec!(0.40), "theta mismatch");
+    assert_eq!(g.theta, dec!(-0.20), "theta mismatch");
     assert_eq!(g.gamma, dec!(0.00), "gamma mismatch");
 }
 

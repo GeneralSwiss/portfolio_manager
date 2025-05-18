@@ -8,15 +8,12 @@ use portfolio_manager::{Portfolio, Repo, main_page};
 use ratatui::{
     Terminal,
     backend::CrosstermBackend,
-    layout::{Constraint, Direction, Layout},
-    widgets::{Block, Borders, Paragraph},
 };
 use std::fs::File;
 use std::sync::Mutex;
 use std::{io, time::Duration};
 use tokio::{fs, sync::mpsc, task, time};
 use tracing::info;
-use tracing_subscriber::fmt::writer::BoxMakeWriter;
 use tracing_subscriber::util::SubscriberInitExt;
 // re-export your lib types
 
