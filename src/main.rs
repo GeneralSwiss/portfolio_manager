@@ -1,21 +1,19 @@
+#![allow(unused, dead_code)]
+
 use clap::Parser;
 use crossterm::{
     event::{DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
+use portfolio_manager::Error;
 use portfolio_manager::{Portfolio, Repo, main_page};
-use ratatui::{
-    Terminal,
-    backend::CrosstermBackend,
-};
+use ratatui::{Terminal, backend::CrosstermBackend};
 use std::fs::File;
 use std::sync::Mutex;
 use std::{io, time::Duration};
 use tokio::{fs, sync::mpsc, task, time};
 use tracing::info;
-use tracing_subscriber::util::SubscriberInitExt;
-// re-export your lib types
 
 /// Simple portfolio TUI
 #[derive(Parser)]
@@ -33,22 +31,15 @@ struct Cli {
 
 #[derive(clap::Subcommand)]
 enum Cmd {
-    Load {
-        #[arg(value_name = "FILE")]
-        file: std::path::PathBuf,
-    },
     Tui,
 }
 
 #[tokio::main]
-async fn main() -> std::io::Result<()> {
+async fn main() -> anyhow::Result<()> {
     let log_file = "portfolio-manager.log";
     if let Err(e) = setup_logging(log_file) {
         eprintln!("Error initializing logging: {}", e);
-        return Err(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            "Logger Failed!",
-        ));
+        return Err(Error::LoggingInitFailure.into());
     }
     let cli = Cli::parse();
 
@@ -62,15 +53,12 @@ async fn main() -> std::io::Result<()> {
     }
 
     match &cli.cmd.unwrap_or(Cmd::Tui) {
-        Cmd::Load { file } => {
-            return Ok(());
-        }
         Cmd::Tui => run_tui(repo, cli.tick).await?,
     };
     Ok(())
 }
 
-async fn run_tui(repo: Repo, tick: u64) -> std::io::Result<()> {
+async fn run_tui(repo: Repo, tick: u64) -> portfolio_manager::Result<()> {
     // channel for tick events
     let (tx, mut rx) = mpsc::channel::<()>(10);
     let tick_ms = tick;
@@ -97,7 +85,7 @@ async fn run_tui(repo: Repo, tick: u64) -> std::io::Result<()> {
         })?;
 
         tokio::select! {
-            _ = rx.recv() => { /* tick => redraw next loop */ }
+            _ = rx.recv() => { /* tick => redraws next loop */ }
             Ok(ev) = read_event_blocking() => {
                 info!("Event: {:?}", ev);
                 if let Event::Key(k) = ev {

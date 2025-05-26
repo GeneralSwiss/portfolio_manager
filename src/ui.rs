@@ -1,4 +1,4 @@
-use crate::{Portfolio, Position};
+use crate::{BookLayer, Portfolio, Position};
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Flex, Layout, Rect};
 use ratatui::widgets::{Paragraph, Row, Table};
@@ -33,17 +33,13 @@ pub fn main_page(frame: &mut Frame, portfolio: &Portfolio) {
 }
 
 impl<'a> From<&'a Position> for Row<'a> {
-    fn from(value: &'a Position) -> Self {
-        Row::new(vec![
-            value.id.clone(),
-            value.underlying.clone(),
-            value.market_value().to_string(),
-        ])
+    fn from(_value: &'a Position) -> Self {
+        todo!("Haven't done this yet")
     }
 }
 
-pub fn create_position_table(positions: &[Position]) -> Table {
+pub fn create_position_table(positions: &[BookLayer]) -> Table {
     Table::default()
         .header(Row::new(vec!["ID", "Underlying", "Market Value"]))
-        .rows(positions.iter().map(|p| p.into()))
+        .rows(positions.iter().map(|p| p.as_ref().into()))
 }

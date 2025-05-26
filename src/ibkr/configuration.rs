@@ -34,7 +34,7 @@ impl Default for IbClientConfig {
     fn default() -> Self {
         Self {
             host: "127.0.0.1".into(),
-            port: 4002, // sensible default: TWS paper
+            port: 4001, // sensible default: TWS paper
             client_id: 0,
         }
     }

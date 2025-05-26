@@ -1,5 +1,5 @@
 use crate::Portfolio;
-use anyhow::{Context, Result};
+use crate::Result;
 use dashmap::DashMap;
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
@@ -36,7 +36,7 @@ impl Repo {
     where
         F: FnOnce(&Portfolio) -> R,
     {
-        self.cache.get(key).map(|guard| f(&*guard))
+        self.cache.get(key).map(|guard| f(&guard))
     }
 
     pub fn list_keys(&self) -> Vec<String> {
@@ -44,16 +44,15 @@ impl Repo {
     }
 
     pub fn save_to_file(&self, path: impl AsRef<Path>) -> Result<()> {
-        let file = File::create(path).context("create save file")?;
+        let file = File::create(path)?;
         let writer = BufWriter::new(file);
-        serde_json::to_writer_pretty(writer, &self.list_as_vec()).context("serialize repo")
+        Ok(serde_json::to_writer_pretty(writer, &self.list_as_vec())?)
     }
 
     pub fn load_from_file(&self, path: impl AsRef<Path>) -> Result<()> {
-        let file = File::open(path).context("open repo file")?;
+        let file = File::open(path)?;
         let reader = BufReader::new(file);
-        let vec: Vec<(String, Portfolio)> =
-            serde_json::from_reader(reader).context("deserialize repo")?;
+        let vec: Vec<(String, Portfolio)> = serde_json::from_reader(reader)?;
         self.cache.clear();
         vec.into_iter().for_each(|(k, v)| {
             self.cache.insert(k, v);
@@ -108,14 +107,13 @@ mod tests {
     fn demo_portfolio() -> Portfolio {
         Portfolio {
             cash: Decimal::try_from(42_000.0).unwrap(),
-            positions: vec![Position {
+            positions: vec![BookLayer::Income(Position {
                 id: "test".into(),
                 underlying: "SPY".into(),
-                book_layer: BookLayer::Income,
                 pos_type: PositionType::CreditSpread,
                 legs: vec![],
                 margin_used: Decimal::try_from(10_000.0).unwrap(),
-            }],
+            })],
         }
     }
 
@@ -128,7 +126,7 @@ mod tests {
         let fetched = repo.get();
         assert_eq!(fetched.cash, Decimal::try_from(42_000.0).unwrap());
         assert_eq!(fetched.positions.len(), 1);
-        assert_eq!(fetched.positions[0].id, "test");
+        assert_eq!(fetched.positions[0].as_ref().id, "test");
     }
 
     #[test]
